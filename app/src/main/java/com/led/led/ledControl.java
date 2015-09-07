@@ -8,6 +8,7 @@ import android.view.MenuItem;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -17,15 +18,15 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.os.AsyncTask;
 
+import org.w3c.dom.Text;
+
 import java.io.IOException;
 import java.util.UUID;
 
 
 public class ledControl extends ActionBarActivity {
 
-    Button btnOn, btnOff, btnDis;
-    SeekBar brightness;
-    TextView lumn;
+    Button  btnDis, numsend, tsend,rtc, prtc, ftp;
     String address = null;
     private ProgressDialog progress;
     BluetoothAdapter myBluetooth = null;
@@ -34,11 +35,13 @@ public class ledControl extends ActionBarActivity {
     //SPP UUID. Look for it
     static final UUID myUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         Intent newint = getIntent();
         address = newint.getStringExtra(DeviceList.EXTRA_ADDRESS); //receive the address of the bluetooth device
 
@@ -46,72 +49,129 @@ public class ledControl extends ActionBarActivity {
         setContentView(R.layout.activity_led_control);
 
         //call the widgtes
-        btnOn = (Button)findViewById(R.id.button2);
-        btnOff = (Button)findViewById(R.id.button3);
+
         btnDis = (Button)findViewById(R.id.button4);
-        brightness = (SeekBar)findViewById(R.id.seekBar);
-        lumn = (TextView)findViewById(R.id.lumn);
+        numsend =(Button)findViewById(R.id.nSend);
+        tsend =(Button)findViewById(R.id.Send);
+        rtc = (Button)findViewById(R.id.RTC);
+        prtc = (Button)findViewById(R.id.printRTC);
+        ftp = (Button)findViewById(R.id.FTP);
 
         new ConnectBT().execute(); //Call the class to connect
 
         //commands to be sent to bluetooth
-        btnOn.setOnClickListener(new View.OnClickListener()
-        {
+        ftp.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                turnOnLed();      //method to turn on
+            public void onClick(View v) {
+                sendftp();
             }
         });
 
-        btnOff.setOnClickListener(new View.OnClickListener() {
+        prtc.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-                turnOffLed();   //method to turn off
+            public void onClick(View v) {
+                printrtc();
+
             }
         });
 
-        btnDis.setOnClickListener(new View.OnClickListener()
-        {
+        rtc.setOnClickListener(new View.OnClickListener(){
             @Override
-            public void onClick(View v)
-            {
+                    public void onClick(View v){
+                    RTC();
+            }
+
+        });
+
+        numsend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                numsend();
+            }
+        });
+
+        tsend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                tsend();
+            }
+        });
+
+        btnDis.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
                 Disconnect(); //close connection
             }
         });
 
-        brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser==true)
-                {
-                    lumn.setText(String.valueOf(progress));
-                    try
-                    {
-                        btSocket.getOutputStream().write(String.valueOf(progress).getBytes());
-                    }
-                    catch (IOException e)
-                    {
-
-                    }
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
     }
 
-    private void Disconnect()
-    {
+    private void sendftp(){
+        if (btSocket != null) {
+            try {
+
+                btSocket.getOutputStream().write("g".toString().getBytes());
+            } catch (IOException e) {
+                msg("Error");
+            }
+        }
+    }
+
+    private void printrtc(){
+        if (btSocket != null) {
+            try {
+
+                btSocket.getOutputStream().write("f".toString().getBytes());
+            } catch (IOException e) {
+                msg("Error");
+            }
+        }
+    }
+
+    private void RTC(){
+        if (btSocket != null) {
+            try {
+
+                btSocket.getOutputStream().write("e".toString().getBytes());
+            } catch (IOException e) {
+                msg("Error");
+            }
+        }
+    }
+
+    private void numsend (){
+        final TextView texto = (TextView) findViewById(R.id.numtext);
+        String A = texto.getText().toString();
+        //String texto = (TextView) findViewById(R.id.inText).getText().toString();
+        //Toast.makeText(getApplicationContext(), A, Toast.LENGTH_LONG).show();
+        if (btSocket != null) {
+            try {
+                btSocket.getOutputStream().write(A.getBytes());
+                //btSocket.getOutputStream().write("\n".toString().getBytes());
+                texto.setText("");
+            } catch (IOException e) {
+                msg("Error");
+            }
+        }
+    }
+
+    private void tsend(){
+        final TextView text = (TextView) findViewById(R.id.inText);
+        String A = text.getText().toString();
+        //String texto = (TextView) findViewById(R.id.inText).getText().toString();
+        //Toast.makeText(getApplicationContext(), A, Toast.LENGTH_LONG).show();
+        if (btSocket != null) {
+            try {
+                btSocket.getOutputStream().write(A.getBytes());
+                btSocket.getOutputStream().write("\n".toString().getBytes());
+                text.setText("");
+            } catch (IOException e) {
+                msg("Error");
+            }
+        }
+    }
+
+    private void Disconnect() {
         if (btSocket!=null) //If the btSocket is busy
         {
             try
@@ -125,39 +185,9 @@ public class ledControl extends ActionBarActivity {
 
     }
 
-    private void turnOffLed()
-    {
-        if (btSocket!=null)
-        {
-            try
-            {
-                btSocket.getOutputStream().write("TF".toString().getBytes());
-            }
-            catch (IOException e)
-            {
-                msg("Error");
-            }
-        }
-    }
-
-    private void turnOnLed()
-    {
-        if (btSocket!=null)
-        {
-            try
-            {
-                btSocket.getOutputStream().write("TO".toString().getBytes());
-            }
-            catch (IOException e)
-            {
-                msg("Error");
-            }
-        }
-    }
 
     // fast way to call Toast
-    private void msg(String s)
-    {
+    private void msg(String s) {
         Toast.makeText(getApplicationContext(),s,Toast.LENGTH_LONG).show();
     }
 
@@ -183,8 +213,8 @@ public class ledControl extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private class ConnectBT extends AsyncTask<Void, Void, Void>  // UI thread
-    {
+    private class ConnectBT extends AsyncTask<Void, Void, Void>{  // UI thread
+
         private boolean ConnectSuccess = true; //if it's here, it's almost connected
 
         @Override
